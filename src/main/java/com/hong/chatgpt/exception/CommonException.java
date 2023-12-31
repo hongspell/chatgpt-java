@@ -13,10 +13,10 @@ import lombok.Getter;
 @Data
 public class CommonException extends RuntimeException{
 
-    private final String errorCode;
+    private final int errorCode;
     private final String solution;
 
-    public CommonException(String message, String errorCode, String solution) {
+    public CommonException(String message, int errorCode, String solution) {
         super(message);
         this.errorCode = errorCode;
         this.solution = solution;

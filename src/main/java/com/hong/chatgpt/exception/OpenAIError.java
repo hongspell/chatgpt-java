@@ -16,7 +16,8 @@ public enum OpenAIError {
     RATE_LIMIT_REACHED(429, "Rate limit reached for requests", "Pace your requests. Read the Rate limit guide."),
     QUOTA_EXCEEDED(429, "You exceeded your current quota, please check your plan and billing details", "Buy more credits or learn how to increase your limits."),
     SERVER_ERROR(500, "The server had an error while processing your request", "Retry your request after a brief wait and contact us if the issue persists. Check the status page."),
-    SERVER_OVERLOADED(503, "The engine is currently overloaded, please try again later", "Please retry your requests after a brief wait.");
+    SERVER_OVERLOADED(503, "The engine is currently overloaded, please try again later", "Please retry your requests after a brief wait."),
+    PARAMETER_INCORRECT(400, "The parameter is incorrect", "Please check if your parameters meet the requirements.");
 
     private final int statusCode;
     private final String overview;

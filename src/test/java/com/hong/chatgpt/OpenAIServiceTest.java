@@ -7,6 +7,7 @@ import com.hong.chatgpt.entity.chat.ChatMessage;
 import com.hong.chatgpt.entity.audio.Transcription;
 import com.hong.chatgpt.entity.audio.Whisper;
 import com.hong.chatgpt.entity.audio.WhisperResponse;
+import com.hong.chatgpt.entity.image.*;
 import com.hong.chatgpt.entity.model.ModelResponse;
 import com.hong.chatgpt.service.OpenAIService;
 import lombok.extern.slf4j.Slf4j;
@@ -53,10 +54,16 @@ public class OpenAIServiceTest {
                         .host("127.0.0.1")
                         .port(7890));
 
+        // default max size is 262144(0.2m)，chang it to 3m, it is for generate image
+        int maxSizeInBytes = 16 * 1024 * 1024;
+
         WebClient.Builder webClientBuilder = WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .baseUrl(openAIHost)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
+                .codecs(clientCodecConfigurer ->
+                        clientCodecConfigurer.defaultCodecs().maxInMemorySize(maxSizeInBytes)
+                )
                 .filter(ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
                     if (clientResponse.statusCode().is5xxServerError()) {
                         return Mono.error(new RuntimeException("System Error"));
@@ -123,5 +130,16 @@ public class OpenAIServiceTest {
         WhisperResponse response = responseMono.block();
         assert response != null;
         System.out.println(response.getText());
+    }
+
+    @Test
+    public void genImages(){
+        // if you use b64_json not url, please consider the max buffer size
+        Image image = Image.builder().prompt("tiger").responseFormat(ResponseFormat.URL.getName()).build();
+        ImageResponse response = service.genImagesBlocking(image);
+        System.out.println(response.getCreated());
+        response.getData().forEach(responseData -> {
+            System.out.println(responseData.getUrl());
+        });
     }
 }

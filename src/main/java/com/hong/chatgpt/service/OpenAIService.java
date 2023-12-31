@@ -10,6 +10,10 @@ import com.hong.chatgpt.entity.edit.Edit;
 import com.hong.chatgpt.entity.edit.EditResponse;
 import com.hong.chatgpt.entity.embedding.Embedding;
 import com.hong.chatgpt.entity.embedding.EmbeddingResponse;
+import com.hong.chatgpt.entity.image.Image;
+import com.hong.chatgpt.entity.image.ImageEdit;
+import com.hong.chatgpt.entity.image.ImageResponse;
+import com.hong.chatgpt.entity.image.ResponseData;
 import com.hong.chatgpt.entity.model.Model;
 import com.hong.chatgpt.entity.model.ModelResponse;
 import com.hong.chatgpt.entity.audio.Transcription;
@@ -34,17 +38,21 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @Author hong
  * @Description Implement some OpenAI interface's function
- * @Date
+ * @Date 2022-12-21
  **/
 @Service
 @Slf4j
 public class OpenAIService {
 
     private final WebClient webClient;
+
+    private static final long MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
+    private static final String SUPPORTED_FORMAT = "png";
 
     public OpenAIService(WebClient.Builder builder) {
         this.webClient = builder.build();
@@ -160,7 +168,7 @@ public class OpenAIService {
     }
 
     /**
-     * @Description to handle form-data for translations & transcriptions in a method, if u don't like reflex, u can choose other way to achieve it
+     * @Description to handle form-data for translations & transcriptions in a method, if you don't like reflex, you can choose other way to achieve it
      * @Param [file, params]
      * @return org.springframework.util.MultiValueMap<java.lang.String,org.springframework.http.HttpEntity<?>>
      **/
@@ -188,23 +196,11 @@ public class OpenAIService {
         return data;
     }
 
-//    private MultiValueMap<String, HttpEntity<?>> createMultipartDataForTranscriptions(File, Transcription transcription) {
-//        MultiValueMap<String, HttpEntity<?>> data = new LinkedMultiValueMap<>();
-//
-//        // wrap the file resource
-//        data.add("file", new HttpEntity<>(new FileSystemResource(file)));
-//
-//        // add other fields
-//        if (transcription.getModel() != null) data.add("model", new HttpEntity<>(transcription.getModel()));
-//        if (transcription.getLanguage() != null) data.add("language", new HttpEntity<>(transcription.getLanguage()));
-//        if (transcription.getPrompt() != null) data.add("prompt", new HttpEntity<>(transcription.getPrompt()));
-//        if (transcription.getResponseFormat() != null) data.add("response_format", new HttpEntity<>(transcription.getResponseFormat()));
-//        if (transcription.getTemperature() != null) data.add("temperature", new HttpEntity<>(transcription.getTemperature()));
-//
-//        return data;
-//    }
-
-
+    /**
+     * @Description Get a vector representation of a given input that can be easily consumed by machine learning models and algorithms.
+     * @Param [embedding]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.embedding.EmbeddingResponse>
+     **/
     public Mono<EmbeddingResponse> embeddings(Embedding embedding){
         return webClient.post()
                 .uri("/v1/embeddings")
@@ -212,6 +208,135 @@ public class OpenAIService {
                 .retrieve()
                 .bodyToMono(EmbeddingResponse.class);
     }
+
+    /**
+     * @Description get EmbeddingResponse with block not Mono<EmbeddingResponse>
+     * @Param [embedding]
+     * @return com.hong.chatgpt.entity.embedding.EmbeddingResponse
+     **/
+    public EmbeddingResponse embeddingsBlocking(Embedding embedding){
+        return embeddings(embedding).block();
+    }
+
+    /**
+     * @Description generate images by Image
+     * @Param [image]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
+     **/
+    public Mono<ImageResponse> genImages(Image image){
+        return webClient.post()
+                .uri("/v1/images/generations")
+                .bodyValue(image)
+                .retrieve()
+                .bodyToMono(ImageResponse.class);
+    }
+
+    /**
+     * @Description generate images by a prompt
+     * @Param [prompt]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
+     **/
+    public Mono<ImageResponse> genImages(String prompt){
+        Image image = Image.builder().prompt(prompt).build();
+        return genImages(image);
+    }
+
+    /**
+     * @Description generate images by a prompt
+     * @Param [prompt]
+     * @return com.hong.chatgpt.entity.image.ImageResponse
+     **/
+    public ImageResponse genImagesBlocking(String prompt){
+        return genImages(prompt).block();
+    }
+
+    /**
+     * @Description generate images by Image
+     * @Param [image]
+     * @return com.hong.chatgpt.entity.image.ImageResponse
+     **/
+    public ImageResponse genImagesBlocking(Image image){
+        return genImages(image).block();
+    }
+
+    /**
+     * @Description edit image by imageEdit
+     * @Param [image, imageEdit]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
+     **/
+    public Mono<ImageResponse> editImages(File image, ImageEdit imageEdit){
+        return webClient.post()
+                .uri("/v1/images/edits")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(createEditImages(image, null, imageEdit)))
+                .retrieve()
+                .bodyToMono(ImageResponse.class);
+    }
+
+    /**
+     * @Description edit image by prompt
+     * @Param [image, prompt]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
+     **/
+    public Mono<ImageResponse> editImages(File image, String prompt){
+        ImageEdit imageEdit = ImageEdit.builder().prompt(prompt).build();
+        return editImages(image, imageEdit);
+    }
+
+    /**
+     * @Description edit image by imageEdit
+     * @Param [image, imageEdit]
+     * @return com.hong.chatgpt.entity.image.ImageResponse
+     **/
+    public ImageResponse editImagesBlocking(File image, ImageEdit imageEdit){
+        return editImages(image, imageEdit).block();
+    }
+
+    /**
+     * @Description edit image by prompt
+     * @Param [image, prompt]
+     * @return com.hong.chatgpt.entity.image.ImageResponse
+     **/
+    public ImageResponse editImagesBlocking(File image, String prompt){
+        return editImages(image, prompt).block();
+    }
+
+    private MultiValueMap<String, HttpEntity<?>> createEditImages(File image, File mask, ImageEdit imageEdit){
+        MultiValueMap<String, HttpEntity<?>> data = new LinkedMultiValueMap<>();
+        checkImage(image);
+        data.add("image", new HttpEntity<>(new FileSystemResource(image)));
+        if (Objects.nonNull(mask)) data.add("mask", new HttpEntity<>(new FileSystemResource(mask)));
+        data.add("prompt", new HttpEntity<>(imageEdit.getPrompt()));
+        data.add("n", new HttpEntity<>(imageEdit.getN().toString()));
+        data.add("size", new HttpEntity<>(imageEdit.getSize()));
+        data.add("response_format", new HttpEntity<>(imageEdit.getResponseFormat()));
+        if (Objects.nonNull(imageEdit.getUser())) data.add("user", new HttpEntity<>(imageEdit.getUser()));
+        return data;
+    }
+
+    private void checkImage(File image){
+        // check isNull
+        if(Objects.isNull(image)){
+            logErrorAndThrow("Image cannot be empty!", OpenAIError.PARAMETER_INCORRECT);
+        }
+        // check format, image is must be a PNG
+        String fileName = image.getName().toLowerCase();
+        if (!fileName.endsWith(SUPPORTED_FORMAT.toLowerCase())) {
+            logErrorAndThrow("Image's format must be PNG or png!", OpenAIError.PARAMETER_INCORRECT);
+        }
+        // check size, less than 4MB
+        if (image.length() > MAX_IMAGE_SIZE) {
+            logErrorAndThrow("Image's size must be less than 4MB!", OpenAIError.PARAMETER_INCORRECT);
+        }
+    }
+
+    private void logErrorAndThrow(String message, OpenAIError error) {
+        log.error(message);
+        throw new CommonException(error.getOverview(),
+                error.getStatusCode(),
+                error.getSolution());
+    }
+
 
 
 }

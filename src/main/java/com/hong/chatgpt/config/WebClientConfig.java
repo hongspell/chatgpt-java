@@ -34,21 +34,18 @@ public class WebClientConfig {
     public WebClient.Builder builder() {
 
           // create proxy, support to access https://api.openai.com/
-        HttpClient httpClient = HttpClient.create()
-                .proxy(proxy -> proxy.type(ProxyProvider.Proxy.HTTP)
-                        .host("127.0.0.1")
-                        .port(7890))
-                .responseTimeout(Duration.ofSeconds(30));
-
-        // 然后，把下面函数加载WebClient.builder()下面.baseUrl(openAIHost)上面
-        // .clientConnector(new ReactorClientHttpConnector(httpClient))
+//        HttpClient httpClient = HttpClient.create()
+//                .proxy(proxy -> proxy.type(ProxyProvider.Proxy.HTTP)
+//                        .host("127.0.0.1")
+//                        .port(7890))
+//                .responseTimeout(Duration.ofSeconds(30));
 
 
-        // return WebClient.Builder instance
+        // A webClient.Builder instance
         return WebClient.builder()
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .baseUrl(openAIHost)
                 .defaultHeader("Authorization", "Bearer " + apiKey);
+                // .clientConnector(new ReactorClientHttpConnector(httpClient))
     }
 
 }
