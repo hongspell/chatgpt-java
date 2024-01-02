@@ -4,16 +4,16 @@ import com.hong.chatgpt.entity.audio.Translation;
 import com.hong.chatgpt.entity.chat.ChatCompletion;
 import com.hong.chatgpt.entity.chat.ChatCompletionResponse;
 import com.hong.chatgpt.entity.chat.ChatMessage;
+import com.hong.chatgpt.entity.common.DeletedResponse;
 import com.hong.chatgpt.entity.completion.Completion;
 import com.hong.chatgpt.entity.completion.CompletionResponse;
 import com.hong.chatgpt.entity.edit.Edit;
 import com.hong.chatgpt.entity.edit.EditResponse;
 import com.hong.chatgpt.entity.embedding.Embedding;
 import com.hong.chatgpt.entity.embedding.EmbeddingResponse;
-import com.hong.chatgpt.entity.image.Image;
-import com.hong.chatgpt.entity.image.ImageEdit;
-import com.hong.chatgpt.entity.image.ImageResponse;
-import com.hong.chatgpt.entity.image.ResponseData;
+import com.hong.chatgpt.entity.file.OpenAIFileResponse;
+import com.hong.chatgpt.entity.file.OpenFilesWrapper;
+import com.hong.chatgpt.entity.image.*;
 import com.hong.chatgpt.entity.model.Model;
 import com.hong.chatgpt.entity.model.ModelResponse;
 import com.hong.chatgpt.entity.audio.Transcription;
@@ -23,14 +23,14 @@ import com.hong.chatgpt.exception.OpenAIError;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -219,7 +219,126 @@ public class OpenAIService {
     }
 
     /**
-     * @Description generate images by Image
+     * @Description POST, upload a file that can be used across various endpoints. A maximum is 512m or 2 million tokens.
+     * @Param [purpose, file]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.file.OpenAIFileResponse>
+     **/
+    public Mono<OpenAIFileResponse> uploadFiles(String purpose, File file){
+        return webClient.post()
+                .uri("/v1/files")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(createsUploadFile(purpose, file)))
+                .retrieve()
+                .bodyToMono(OpenAIFileResponse.class);
+    }
+
+    /**
+     * @Description Upload a file that can be used across various endpoints. A maximum is 512m or 2 million tokens.
+     * @Param [purpose, file]
+     * @return com.hong.chatgpt.entity.file.OpenAIFileResponse
+     **/
+    public OpenAIFileResponse uploadFilesBlocking(String purpose, File file){
+        return uploadFiles(purpose, file).block();
+    }
+
+    private MultiValueMap<String, HttpEntity<?>> createsUploadFile(String purpose, File file){
+//        MultiValueMap<String, HttpEntity<?>> data = new LinkedMultiValueMap<>();
+//        data.add("purpose", new HttpEntity<>(purpose));
+//        data.add("file", new HttpEntity<>(new FileSystemResource(file)));
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.part("file", file).filename(file.getName());
+        builder.part("purpose", purpose);
+        MultiValueMap<String, HttpEntity<?>> multipartBody =builder.build();
+        return builder.build();
+    }
+
+    /**
+     * @Description GET, returns a list of files that belong to the user's organization.
+     * @Param []
+     * @return reactor.core.publisher.Mono<java.util.List<com.hong.chatgpt.entity.file.OpenAIFileResponse>>
+     **/
+    public Mono<OpenFilesWrapper> getFileList(){
+        return webClient.get()
+                .uri("/v1/files")
+                .retrieve()
+                .bodyToMono(OpenFilesWrapper.class);
+    }
+
+    /**
+     * @Description GET, returns a list of files that belong to the user's organization.
+     * @Param []
+     * @return java.util.List<com.hong.chatgpt.entity.file.OpenAIFileResponse>
+     **/
+    public OpenFilesWrapper getFileListBlocking(){
+        return getFileList().block();
+    }
+
+    /**
+     * @Description GET, returns information about a specific file.
+     * @Param [id]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.file.OpenAIFileResponse>
+     **/
+    public Mono<OpenAIFileResponse> retrieveFile(String id){
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/v1/files/{file_id}").build(id))
+                .retrieve()
+                .bodyToMono(OpenAIFileResponse.class);
+    }
+
+    /**
+     * @Description GET, returns information about a specific file.
+     * @Param [id]
+     * @return com.hong.chatgpt.entity.file.OpenAIFileResponse
+     **/
+    public OpenAIFileResponse retrieveFileBlocking(String id){
+        return retrieveFile(id).block();
+    }
+
+    /**
+     * @Description GET, delete a file.
+     * @Param [id]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.common.DeletedResponse>
+     **/
+    public Mono<DeletedResponse> deleteFile(String id){
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/v1/files/{file_id}").build(id))
+                .retrieve()
+                .bodyToMono(DeletedResponse.class);
+    }
+
+    /**
+     * @Description GET, delete a file.
+     * @Param [id]
+     * @return com.hong.chatgpt.entity.common.DeletedResponse
+     **/
+    public DeletedResponse deleteFileBlocking(String id){
+        return deleteFile(id).block();
+    }
+
+    /**
+     * @Description GET, returns the contents of the specified file.
+     * @Param [id]
+     * @return reactor.core.publisher.Mono<org.springframework.web.bind.annotation.ResponseBody>
+     **/
+    public Mono<ResponseBody> retrieveFileContent(String id){
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/v1/files/{file_id}/content").build(id))
+                .retrieve()
+                .bodyToMono(ResponseBody.class);
+    }
+
+    /**
+     * @Description GET, returns the contents of the specified file.
+     * @Param [id]
+     * @return org.springframework.web.bind.annotation.ResponseBody
+     **/
+    public ResponseBody retrieveFileContentBlocking(String id){
+        return retrieveFileContent(id).block();
+    }
+
+
+    /**
+     * @Description generate images with DALL·E 3 or DALL·E 2
      * @Param [image]
      * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
      **/
@@ -232,7 +351,7 @@ public class OpenAIService {
     }
 
     /**
-     * @Description generate images by a prompt
+     * @Description generate images with DALL·E 3 or DALL·E 2
      * @Param [prompt]
      * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
      **/
@@ -242,7 +361,7 @@ public class OpenAIService {
     }
 
     /**
-     * @Description generate images by a prompt
+     * @Description generate images with DALL·E 3 or DALL·E 2
      * @Param [prompt]
      * @return com.hong.chatgpt.entity.image.ImageResponse
      **/
@@ -251,7 +370,7 @@ public class OpenAIService {
     }
 
     /**
-     * @Description generate images by Image
+     * @Description generate images with DALL·E 3 or DALL·E 2
      * @Param [image]
      * @return com.hong.chatgpt.entity.image.ImageResponse
      **/
@@ -260,58 +379,126 @@ public class OpenAIService {
     }
 
     /**
-     * @Description edit image by imageEdit
-     * @Param [image, imageEdit]
+     * @Description edit image with DALL·E 2 only, if mask is not provided, image must have transparency, which will be used as the mask.
+     * @Param [image, mask, imageEdit]
      * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
      **/
-    public Mono<ImageResponse> editImages(File image, ImageEdit imageEdit){
+    public Mono<ImageResponse> editImages(File image, File mask, ImageEdit imageEdit){
         return webClient.post()
                 .uri("/v1/images/edits")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(createEditImages(image, null, imageEdit)))
+                .body(BodyInserters.fromMultipartData(createEditImages(image, mask, imageEdit)))
                 .retrieve()
                 .bodyToMono(ImageResponse.class);
     }
 
     /**
-     * @Description edit image by prompt
+     * @Description edit image with DALL·E 2 only, if mask is not provided, image must have transparency, which will be used as the mask.
      * @Param [image, prompt]
      * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
      **/
-    public Mono<ImageResponse> editImages(File image, String prompt){
+    public Mono<ImageResponse> editImages(File image, File mask, String prompt){
         ImageEdit imageEdit = ImageEdit.builder().prompt(prompt).build();
-        return editImages(image, imageEdit);
+        return editImages(image, mask, imageEdit);
     }
 
     /**
-     * @Description edit image by imageEdit
+     * @Description edit image with DALL·E 2 only, if mask is not provided, image must have transparency, which will be used as the mask.
      * @Param [image, imageEdit]
      * @return com.hong.chatgpt.entity.image.ImageResponse
      **/
-    public ImageResponse editImagesBlocking(File image, ImageEdit imageEdit){
-        return editImages(image, imageEdit).block();
+    public ImageResponse editImagesBlocking(File image, File mask, ImageEdit imageEdit){
+        return editImages(image, mask, imageEdit).block();
     }
 
     /**
-     * @Description edit image by prompt
+     * @Description edit image with DALL·E 2 only
      * @Param [image, prompt]
      * @return com.hong.chatgpt.entity.image.ImageResponse
      **/
-    public ImageResponse editImagesBlocking(File image, String prompt){
-        return editImages(image, prompt).block();
+    public ImageResponse editImagesBlocking(File image, File mask, String prompt){
+        return editImages(image, mask, prompt).block();
     }
 
+    /**
+     * @Description put image, mask & imageEdit's elements into data
+     * @Param [image, mask, imageEdit]
+     * @return org.springframework.util.MultiValueMap<java.lang.String,org.springframework.http.HttpEntity<?>>
+     **/
     private MultiValueMap<String, HttpEntity<?>> createEditImages(File image, File mask, ImageEdit imageEdit){
         MultiValueMap<String, HttpEntity<?>> data = new LinkedMultiValueMap<>();
         checkImage(image);
-        data.add("image", new HttpEntity<>(new FileSystemResource(image)));
-        if (Objects.nonNull(mask)) data.add("mask", new HttpEntity<>(new FileSystemResource(mask)));
+        getStringHttpEntityMultiValueMap(data, image, imageEdit.getN(), imageEdit.getSize(), imageEdit.getResponseFormat(), imageEdit.getUser());
         data.add("prompt", new HttpEntity<>(imageEdit.getPrompt()));
-        data.add("n", new HttpEntity<>(imageEdit.getN().toString()));
-        data.add("size", new HttpEntity<>(imageEdit.getSize()));
-        data.add("response_format", new HttpEntity<>(imageEdit.getResponseFormat()));
-        if (Objects.nonNull(imageEdit.getUser())) data.add("user", new HttpEntity<>(imageEdit.getUser()));
+        if (Objects.nonNull(mask)) data.add("mask", new HttpEntity<>(new FileSystemResource(mask)));
         return data;
+    }
+
+    /**
+     * @Description Creates a variation of a given image with DALL·E 2 only
+     * @Param [image, imageVariation]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
+     **/
+    public Mono<ImageResponse> variationImages(File image, ImageVariation imageVariation){
+        return webClient.post()
+                .uri("/v1/images/variations")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(createVariationImages(image, imageVariation)))
+                .retrieve()
+                .bodyToMono(ImageResponse.class);
+    }
+
+    /**
+     * @Description Creates a variation of a given image with DALL·E 2 only
+     * @Param [image]
+     * @return com.hong.chatgpt.entity.image.ImageResponse
+     **/
+    public ImageResponse variationImagesBlocking(File image){
+        return variationImages(image).block();
+    }
+
+    /**
+     * @Description Creates a variation of a given image with DALL·E 2 only
+     * @Param [image, imageVariation]
+     * @return com.hong.chatgpt.entity.image.ImageResponse
+     **/
+    public ImageResponse variationImagesBlocking(File image, ImageVariation imageVariation){
+        return variationImages(image, imageVariation).block();
+    }
+
+    /**
+     * @Description Creates a variation of a given image with DALL·E 2 only
+     * @Param [image]
+     * @return reactor.core.publisher.Mono<com.hong.chatgpt.entity.image.ImageResponse>
+     **/
+    public Mono<ImageResponse> variationImages(File image){
+        ImageVariation imageVariation = ImageVariation.builder().build();
+        return variationImages(image, imageVariation);
+    }
+
+    /**
+     * @Description put imageVariation's elements & image into data
+     * @Param [image, imageVariation]
+     * @return org.springframework.util.MultiValueMap<java.lang.String,org.springframework.http.HttpEntity<?>>
+     **/
+    private MultiValueMap<String, HttpEntity<?>> createVariationImages(File image, ImageVariation imageVariation){
+        MultiValueMap<String, HttpEntity<?>> data = new LinkedMultiValueMap<>();
+        checkImage(image);
+        getStringHttpEntityMultiValueMap(data, image,imageVariation.getN(), imageVariation.getSize(), imageVariation.getResponseFormat(), imageVariation.getUser());
+        data.add("image", new HttpEntity<>(new FileSystemResource(image)));
+        return data;
+    }
+
+    /**
+     * @Description put elements into data
+     * @Param [data, image, n, size, responseFormat, user]
+     **/
+    private void getStringHttpEntityMultiValueMap(MultiValueMap<String, HttpEntity<?>> data, File image,Integer n, String size, String responseFormat, String user) {
+        data.add("image", new HttpEntity<>(new FileSystemResource(image)));
+        data.add("n", new HttpEntity<>(n.toString()));
+        data.add("size", new HttpEntity<>(size));
+        data.add("response_format", new HttpEntity<>(responseFormat));
+        if (Objects.nonNull(user)) data.add("user", new HttpEntity<>(user));
     }
 
     private void checkImage(File image){
@@ -329,6 +516,8 @@ public class OpenAIService {
             logErrorAndThrow("Image's size must be less than 4MB!", OpenAIError.PARAMETER_INCORRECT);
         }
     }
+
+
 
     private void logErrorAndThrow(String message, OpenAIError error) {
         log.error(message);

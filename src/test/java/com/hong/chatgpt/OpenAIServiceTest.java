@@ -7,6 +7,9 @@ import com.hong.chatgpt.entity.chat.ChatMessage;
 import com.hong.chatgpt.entity.audio.Transcription;
 import com.hong.chatgpt.entity.audio.Whisper;
 import com.hong.chatgpt.entity.audio.WhisperResponse;
+import com.hong.chatgpt.entity.common.DeletedResponse;
+import com.hong.chatgpt.entity.file.OpenAIFileResponse;
+import com.hong.chatgpt.entity.file.OpenFilesWrapper;
 import com.hong.chatgpt.entity.image.*;
 import com.hong.chatgpt.entity.model.ModelResponse;
 import com.hong.chatgpt.service.OpenAIService;
@@ -19,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -137,9 +141,50 @@ public class OpenAIServiceTest {
         // if you use b64_json not url, please consider the max buffer size
         Image image = Image.builder().prompt("tiger").responseFormat(ResponseFormat.URL.getName()).build();
         ImageResponse response = service.genImagesBlocking(image);
-        System.out.println(response.getCreated());
-        response.getData().forEach(responseData -> {
-            System.out.println(responseData.getUrl());
-        });
+        System.out.println(response);
     }
+
+    @Test
+    public void editImage(){
+        ImageResponse response = service.editImagesBlocking(new File("C:\\Users\\three\\Pictures\\avatar.png"), null, "remove sunglasses");
+        System.out.println(response);
+    }
+
+    @Test
+    public void variationImage(){
+        ImageResponse response = service.variationImages(new File("C:\\Users\\three\\Pictures\\avatar.png")).block();
+        System.out.println(response);
+    }
+
+    @Test
+    public void getFileList(){
+        OpenFilesWrapper fileList = service.getFileListBlocking();
+        System.out.println(fileList);
+    }
+
+    @Test
+    public void uploadFile(){
+        OpenAIFileResponse response = service.uploadFilesBlocking("assistants", new File("C:\\Users\\three\\Desktop\\test.txt"));
+        System.out.println(response);
+    }
+
+    @Test
+    public void retrieveFile(){
+        OpenAIFileResponse response = service.retrieveFileBlocking("file-dqdG93DgeWPaSicHsXn3ZPoR");
+        System.out.println(response);
+    }
+
+    @Test
+    public void deleteFile(){
+        DeletedResponse response = service.deleteFileBlocking("file-azHsA0uLGbxhVAih9xpgPPcN");
+        System.out.println(response);
+    }
+
+    @Test
+    public void retrieveFileContent(){
+        ResponseBody response = service.retrieveFileContentBlocking("file-dqdG93DgeWPaSicHsXn3ZPoR");
+        System.out.println(response);
+    }
+
+
 }
