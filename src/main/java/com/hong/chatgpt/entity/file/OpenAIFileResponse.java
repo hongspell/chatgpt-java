@@ -20,5 +20,8 @@ public class OpenAIFileResponse implements Serializable {
     private long createdAt;
     private String filename;
     private String purpose;
+    private String status;
+    @JsonProperty("status_details")
+    private String statusDetails;
 
 }

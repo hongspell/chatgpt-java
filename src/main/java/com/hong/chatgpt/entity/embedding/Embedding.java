@@ -1,10 +1,9 @@
 package com.hong.chatgpt.entity.embedding;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
@@ -15,8 +14,13 @@ import java.util.List;
  * @Description //TODO
  * @Date
  **/
-@Builder
+
 @Data
+@Slf4j
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Embedding implements Serializable {
 
     /**
