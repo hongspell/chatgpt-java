@@ -20,6 +20,7 @@ import java.io.Serializable;
 public class ImageVariation implements Serializable {
 
     // The model to use for image generation
+    @Builder.Default
     private String model = Model.DALL_E_2.getModel();
 
     @Builder.Default

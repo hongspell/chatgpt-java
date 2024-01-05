@@ -27,6 +27,7 @@ public class Image implements Serializable {
     private String prompt;
 
     // The model to use for image generation
+    @Builder.Default
     private String model = Model.DALL_E_2.getModel();
 
     // Defaults to 1, the number of images to generate. Must be between 1 and 10. For dall-e-3, only n=1 is supported.
@@ -34,6 +35,7 @@ public class Image implements Serializable {
     private Integer n = 1;
 
     // Defaults to standard, the quality of the image that will be generated. This param is only supported for dall-e-3.
+    @Builder.Default
     private String quality = Quality.STANDARD.getName();
 
     // The format in which the generated images are returned. Must be one of url or b64_json
@@ -47,6 +49,7 @@ public class Image implements Serializable {
     private String size = Size.SIZE_1024.getName();
 
     // The style of the generated images. This param is only supported for dall-e-3.
+    @Builder.Default
     private String style = Style.VIVID.getName();
 
     private String user;

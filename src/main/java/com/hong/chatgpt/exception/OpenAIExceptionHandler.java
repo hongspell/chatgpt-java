@@ -1,5 +1,6 @@
 package com.hong.chatgpt.exception;
 
+import com.hong.chatgpt.utils.OpenAIResultCode;
 import org.springframework.web.client.HttpClientErrorException;
 
 /**
@@ -10,10 +11,10 @@ import org.springframework.web.client.HttpClientErrorException;
 public class OpenAIExceptionHandler {
 
     public static String handleException(HttpClientErrorException e) {
-        OpenAIError openAIError = OpenAIError.fromStatusCode(e.getStatusCode().value());
+        OpenAIResultCode openAIError = OpenAIResultCode.fromStatusCode(e.getStatusCode().value());
 
         if (openAIError != null) {
-            return openAIError.getOverview() + " " + openAIError.getSolution();
+            return openAIError.getStatusCode() + " " + openAIError.getMessage();
         } else {
             return "An unknown error occurred: " + e.getResponseBodyAsString();
         }

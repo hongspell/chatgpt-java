@@ -1,5 +1,6 @@
 package com.hong.chatgpt.exception;
 
+import com.hong.chatgpt.utils.ResultReturned;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,12 +15,24 @@ import lombok.Getter;
 public class CommonException extends RuntimeException{
 
     private final int errorCode;
-    private final String solution;
+    private final String message;
 
-    public CommonException(String message, int errorCode, String solution) {
+    public CommonException(String message) {
         super(message);
-        this.errorCode = errorCode;
-        this.solution = solution;
+        this.errorCode = ResultReturned.error().getCode();
+        this.message = message;
+    }
+
+    public CommonException(int code, String message) {
+        super(message);
+        this.errorCode = code;
+        this.message = message;
+    }
+
+    public CommonException(){
+        super(ResultReturned.error().getMessage());
+        this.errorCode = ResultReturned.error().getCode();
+        this.message = ResultReturned.error().getMessage();
     }
 
 }

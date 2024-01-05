@@ -23,13 +23,12 @@ import com.hong.chatgpt.entity.model.ModelResponse;
 import com.hong.chatgpt.entity.audio.Transcription;
 import com.hong.chatgpt.entity.audio.WhisperResponse;
 import com.hong.chatgpt.exception.CommonException;
-import com.hong.chatgpt.exception.OpenAIError;
+import com.hong.chatgpt.utils.OpenAIResultCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -735,25 +734,23 @@ public class OpenAIService {
     private void checkImage(File image) {
         // check isNull
         if (Objects.isNull(image)) {
-            logErrorAndThrow("Image cannot be empty!", OpenAIError.PARAMETER_INCORRECT);
+            logErrorAndThrow("Image cannot be empty!", OpenAIResultCode.EMPTY_PARAM);
         }
         // check format, image is must be a PNG
         String fileName = image.getName().toLowerCase();
         if (!fileName.endsWith(SUPPORTED_FORMAT.toLowerCase())) {
-            logErrorAndThrow("Image's format must be PNG or png!", OpenAIError.PARAMETER_INCORRECT);
+            logErrorAndThrow("Image's format must be PNG or png!", OpenAIResultCode.BAD_PARAM);
         }
         // check size, less than 4MB
         if (image.length() > MAX_IMAGE_SIZE) {
-            logErrorAndThrow("Image's size must be less than 4MB!", OpenAIError.PARAMETER_INCORRECT);
+            logErrorAndThrow("Image's size must be less than 4MB!", OpenAIResultCode.BAD_PARAM);
         }
     }
 
 
-    private void logErrorAndThrow(String message, OpenAIError error) {
+    private void logErrorAndThrow(String message, OpenAIResultCode error) {
         log.error(message);
-        throw new CommonException(error.getOverview(),
-                error.getStatusCode(),
-                error.getSolution());
+        throw new CommonException(error.getStatusCode(), error.getMessage());
     }
 
 

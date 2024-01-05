@@ -24,6 +24,7 @@ public class ImageEdit implements Serializable {
     private String prompt;
 
     // Only dall-e-2 is supported at this time.
+    @Builder.Default
     private String model = Model.DALL_E_2.getModel();
 
     // The number of images to generate. Must be between 1 and 10. Defaults to 1
